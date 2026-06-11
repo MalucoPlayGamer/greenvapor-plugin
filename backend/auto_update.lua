@@ -51,7 +51,7 @@ function auto_update.check_for_updates_now()
                 end
             end
             if zip_url == "" and tag_name ~= "" then
-                zip_url = "https://github.com/vaporgreen/greenvapor-plugin/releases/download/" .. tag_name .. "/greenvapor.zip"
+                zip_url = "https://github.com/MalucoPlayGamer/greenvapor-plugin/releases/download/" .. tag_name .. "/greenvapor.zip"
             end
         end
     end
