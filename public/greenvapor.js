@@ -1655,6 +1655,7 @@
           "display:flex;flex-direction:column;gap:12px;align-items:stretch;";
 
         const CARD_DESCS = {
+          "menu.checkForUpdates": t("menu.checkUpdatesDesc", "Check for plugin updates"),
           "menu.fixesMenu": t("menu.fixesMenuDesc", "Apply fixes & patches"),
           "menu.settings": t("menu.settingsDesc", "Plugin settings & preferences"),
           "menu.fetchFreeApis": t("menu.fetchApisDesc", "Download game scripts"),
@@ -1739,11 +1740,7 @@
           "Fixes Menu",
           "fa-wrench",
         );
-        cardGrid.appendChild(fixesMenuBtn);
-        if (!isGamePage) {
-          fixesMenuBtn.style.opacity = "0.4";
-          fixesMenuBtn.style.pointerEvents = "none";
-        }
+        if (isGamePage) cardGrid.appendChild(fixesMenuBtn);
 
         const fetchApisBtn = createCardButton(
           "lt-settings-fetch-apis",
@@ -1768,7 +1765,14 @@
           "fa-gamepad",
         );
         cardGrid.appendChild(libraryBtn);
-        const checkBtn = null;
+
+        const checkBtn = createCardButton(
+          "lt-settings-check",
+          "menu.checkForUpdates",
+          "Check Updates",
+          "fa-cloud-arrow-down",
+        );
+        cardGrid.appendChild(checkBtn);
 
         container.appendChild(cardGrid);
 
@@ -1918,7 +1922,30 @@
             showLibraryModal();
           });
         }
-
+        
+        if (checkBtn) {
+          checkBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            try {
+              overlay.remove();
+            } catch (_) {}
+            try {
+              Millennium.callServerMethod("greenvapor", "CheckForUpdatesNow", {
+                contentScriptQuery: "",
+              }).then(function (res) {
+                try {
+                  const payload =
+                    typeof res === "string" ? JSON.parse(res) : res;
+                  const msg =
+                    payload && payload.message
+                      ? String(payload.message)
+                      : lt("No updates available.");
+                  ShowLuaToolsAlert("GreenVapor", msg);
+                } catch (_) {}
+              });
+            } catch (_) {}
+          });
+        }
         if (fixesMenuBtn) {
           fixesMenuBtn.addEventListener("click", function (e) {
             e.preventDefault();
@@ -8357,3 +8384,39 @@
   // Note: The gamepad back handler is configured in the gamepad system at the top of this file
   // It already handles all overlay types automatically using OVERLAY_SELECTOR_STRING
 })();
+
+// ============================================
+// SISTEMA DE AUTO-UPDATE (BACKEND INTEGRATION)
+// ============================================
+
+function ExecutarVerificacaoDeUpdate(mostrarAlertSeAtualizado = false) {
+    console.log("[GreenVapor-Updater] Iniciando checagem de rotina...");
+    
+    // Chama a função exportada pelo seu auto_update.lua
+    Millennium.callServerMethod("auto_update", "check_for_updates_now")
+        .then(response => {
+            if (response && response.success) {
+                console.log("[GreenVapor-Updater]:", response.message);
+                
+                // Se a mensagem contiver o aviso de que foi atualizado
+                if (response.message.includes("updated to")) {
+                    alert("GreenVapor: " + response.message);
+                } else if (mostrarAlertSeAtualizado) {
+                    alert("O GreenVapor já está na versão mais recente!");
+                }
+            } else if (response && response.error) {
+                console.error("[GreenVapor-Updater] Erro reportado pelo backend:", response.error);
+                if (mostrarAlertSeAtualizado) {
+                    alert("Erro ao verificar atualizações: " + response.error);
+                }
+            }
+        })
+        .catch(err => {
+            console.error("[GreenVapor-Updater] Falha crítica na chamada de rede:", err);
+        });
+}
+
+// Inicialização automática: Verifica assim que a Steam/Plugin abrir
+setTimeout(() => {
+    ExecutarVerificacaoDeUpdate(false);
+}, 5000); // Aguarda 5 segundos para não travar o carregamento inicial da Steam
