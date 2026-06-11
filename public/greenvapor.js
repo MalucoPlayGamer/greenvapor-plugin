@@ -1774,6 +1774,10 @@
         );
         cardGrid.appendChild(checkBtn);
 
+        if (isGamePage) {
+          checkBtn.style.gridColumn = "span 2";
+        }
+
         container.appendChild(cardGrid);
 
         body.appendChild(container);
