@@ -13,7 +13,7 @@ local config = {
         ["Sec-Fetch-Site"] = "cross-site",
     },
 
-    API_MANIFEST_URL = "https://raw.githubusercontent.com/MalucoPlayGamer/RyzenAPIutils/refs/heads/main/load_free_manifest_apis",
+    API_MANIFEST_URL = "https://raw.githubusercontent.com/MalucoPlayGamer/RyzenAPIutils/refs/heads/main/public/load_free_manifest_apis",
     API_MANIFEST_PROXY_URL = "https://greenvapor.vercel.app/load_free_manifest_apis",
     API_JSON_FILE = "api.json",
 
