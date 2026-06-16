@@ -8104,26 +8104,107 @@
 
     const colors = getThemeColors();
     const modal = document.createElement("div");
-    modal.style.cssText = `background:${colors.modalBg};color:${colors.text};border:2px solid ${colors.border};border-radius:3px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:slideUp 0.1s ease-out;`;
+    modal.style.cssText = `background:${colors.modalBg};color:${colors.text};border:1px solid ${colors.border};border-top:2px solid ${colors.accent};border-radius:6px;width:640px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 20px rgba(${colors.rgbString},0.07);animation:slideUp 0.1s ease-out;overflow:hidden;`;
 
     // Header
     const header = document.createElement("div");
-    header.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:20px 24px 14px;border-bottom:1px solid ${colors.border};flex-shrink:0;`;
+    header.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:13px 18px 12px;border-bottom:1px solid ${colors.borderRgba};background:rgba(${colors.rgbString},0.04);flex-shrink:0;position:relative;overflow:hidden;`;
+    const hGrad = document.createElement("div");
+    hGrad.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:1px;background:${colors.gradient};opacity:0.4;pointer-events:none;`;
+    header.appendChild(hGrad);
+
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = `font-size:18px;font-weight:700;color:${colors.text};display:flex;align-items:center;gap:10px;`;
-    titleEl.innerHTML = `<i class="fa-solid fa-gamepad" style="color:${colors.accent};"></i><span>${t("menu.library", "Library")}</span>`;
+    titleEl.style.cssText = "display:flex;align-items:center;gap:10px;position:relative;z-index:1;";
+    const titleImg = document.createElement("img");
+    titleImg.src = "GreenVapor/greenvapor-icon.png";
+    titleImg.style.cssText = `width:30px;height:30px;border-radius:5px;box-shadow:0 0 10px ${colors.shadow};flex-shrink:0;`;
+    titleImg.onerror = function() { this.style.display = "none"; };
+    try {
+      Millennium.callServerMethod("greenvapor", "GetIconDataUrl", { contentScriptQuery: "" }).then(function(res) {
+        try {
+          const p = typeof res === "string" ? JSON.parse(res) : res;
+          titleImg.src = (p && p.success && p.dataUrl) ? p.dataUrl : "GreenVapor/greenvapor-icon.png";
+        } catch(_) {}
+      });
+    } catch(_) {}
+    const titleTextEl = document.createElement("div");
+    titleTextEl.style.cssText = `font-size:14px;font-weight:700;color:${colors.text};line-height:1.2;`;
+    titleTextEl.textContent = "GreenVapor";
+    const subtitleEl = document.createElement("div");
+    subtitleEl.style.cssText = `font-size:11px;color:${colors.textSecondary};margin-top:2px;`;
+    subtitleEl.textContent = t("menu.library", "Biblioteca");
+    const titleStack = document.createElement("div");
+    titleStack.appendChild(titleTextEl);
+    titleStack.appendChild(subtitleEl);
+    titleEl.appendChild(titleImg);
+    titleEl.appendChild(titleStack);
+
+    const headerRight = document.createElement("div");
+    headerRight.style.cssText = "display:flex;align-items:center;gap:6px;position:relative;z-index:1;";
+
+    // View and sort state
+    let currentView = "grid";
+    let currentSort = "alpha";
+    let _originalOrder = {};
+    try { currentView = localStorage.getItem("gv_library_view") || "grid"; } catch(_) {}
+    try { currentSort = localStorage.getItem("gv_library_sort") || "alpha"; } catch(_) {}
+
+    function makeToggleBtn(icon, activeCheck, title) {
+      const btn = document.createElement("a");
+      btn.href = "#";
+      btn.title = title;
+      btn.style.cssText = `display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:4px;font-size:13px;text-decoration:none;transition:all 0.15s;border:1px solid ${colors.border};`;
+      btn.innerHTML = `<i class="${icon}"></i>`;
+      function update() {
+        const active = activeCheck();
+        btn.style.background = active ? `rgba(${colors.rgbString},0.18)` : `rgba(${colors.rgbString},0.07)`;
+        btn.style.color = active ? colors.accent : colors.textSecondary;
+        btn.style.borderColor = active ? colors.accent : colors.border;
+      }
+      update();
+      btn._update = update;
+      return btn;
+    }
+
+    const gridBtn = makeToggleBtn("fa-solid fa-grip", function() { return currentView === "grid"; }, t("menu.library.gridView", "Grade"));
+    const listBtn = makeToggleBtn("fa-solid fa-list", function() { return currentView === "list"; }, t("menu.library.listView", "Lista"));
+    const sortAlphaBtn = makeToggleBtn("fa-solid fa-arrow-down-a-z", function() { return currentSort === "alpha"; }, t("menu.library.sortAlpha", "Ordem A→Z"));
+    const sortDateBtn  = makeToggleBtn("fa-solid fa-clock-rotate-left", function() { return currentSort === "date"; }, t("menu.library.sortDate", "Ordem de inserção"));
+
+    function updateSortBtns() { sortAlphaBtn._update(); sortDateBtn._update(); }
+    function updateViewBtns() { gridBtn._update(); listBtn._update(); }
+
+    // Separator between groups
+    const sep = document.createElement("div");
+    sep.style.cssText = `width:1px;height:18px;background:${colors.border};margin:0 2px;flex-shrink:0;`;
+
     const closeBtn = document.createElement("a");
     closeBtn.href = "#";
-    closeBtn.style.cssText = `color:${colors.textSecondary};font-size:18px;text-decoration:none;line-height:1;`;
+    closeBtn.style.cssText = `display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(${colors.rgbString},0.07);border:1px solid ${colors.border};border-radius:4px;color:${colors.textSecondary};font-size:14px;text-decoration:none;transition:all 0.15s;`;
     closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    closeBtn.onmouseover = function() { const c=getThemeColors(); this.style.background=`rgba(${c.rgbString},0.2)`; this.style.borderColor=c.borderHover; };
+    closeBtn.onmouseout  = function() { const c=getThemeColors(); this.style.background=`rgba(${c.rgbString},0.07)`; this.style.borderColor=c.border; };
     closeBtn.onclick = function(e) { e.preventDefault(); overlay.remove(); };
+
+    headerRight.appendChild(sortAlphaBtn);
+    headerRight.appendChild(sortDateBtn);
+    headerRight.appendChild(sep);
+    headerRight.appendChild(gridBtn);
+    headerRight.appendChild(listBtn);
+    headerRight.appendChild(closeBtn);
     header.appendChild(titleEl);
-    header.appendChild(closeBtn);
+    header.appendChild(headerRight);
     modal.appendChild(header);
+
+    // Counter bar
+    const counterBar = document.createElement("div");
+    counterBar.style.cssText = `padding:6px 18px;font-size:10px;color:${colors.textSecondary};border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(${colors.rgbString},0.03);flex-shrink:0;letter-spacing:0.02em;`;
+    counterBar.textContent = " ";
+    modal.appendChild(counterBar);
 
     // Content
     const content = document.createElement("div");
-    content.style.cssText = "flex:1;overflow-y:auto;padding:16px 24px;";
+    content.style.cssText = "flex:1;overflow-y:auto;padding:14px 16px;";
 
     const loading = document.createElement("div");
     loading.style.cssText = `text-align:center;padding:32px;color:${colors.textSecondary};font-size:13px;`;
@@ -8133,140 +8214,246 @@
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
-    overlay.addEventListener("click", function(e) {
-      if (e.target === overlay) overlay.remove();
-    });
+    overlay.addEventListener("click", function(e) { if (e.target === overlay) overlay.remove(); });
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function buildImgElement(appid, wrapCss, imgCss, fallbackIconSize) {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = wrapCss;
+      const img = document.createElement("img");
+      img.style.cssText = imgCss;
+      const urls = [
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/header.jpg",
+        "https://cdn.akamai.steamstatic.com/steam/apps/" + appid + "/header.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/capsule_616x353.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/capsule_231x87.jpg",
+      ];
+      let idx = 0;
+      function showIcon() {
+        img.remove();
+        wrap.style.cssText += "display:flex;align-items:center;justify-content:center;";
+        const ico = document.createElement("i");
+        ico.className = "fa-solid fa-gamepad";
+        ico.style.cssText = `font-size:${fallbackIconSize};color:${colors.textSecondary};opacity:0.4;`;
+        wrap.appendChild(ico);
+      }
+      img.src = urls[idx];
+      img.onerror = function() {
+        idx++;
+        if (idx < urls.length) { img.src = urls[idx]; return; }
+        fetchSteamHeaderImage(appid).then(function(url) {
+          if (url) { img.onerror = showIcon; img.src = url; }
+          else showIcon();
+        }).catch(showIcon);
+      };
+      wrap.appendChild(img);
+      return wrap;
+    }
+
+    function makeDeleteBtn(appid, onDeleted) {
+      const btn = document.createElement("a");
+      btn.href = "#";
+      btn.style.cssText = `display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(229,115,115,0.08);border:1px solid rgba(229,115,115,0.25);border-radius:3px;color:#e57373;font-size:12px;text-decoration:none;transition:all 0.15s;flex-shrink:0;`;
+      btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      btn.title = t("Delete", "Deletar");
+      btn.onmouseover = function() { this.style.background="rgba(229,115,115,0.2)"; this.style.borderColor="#e57373"; };
+      btn.onmouseout  = function() { this.style.background="rgba(229,115,115,0.08)"; this.style.borderColor="rgba(229,115,115,0.25)"; };
+      btn.onclick = function(e) {
+        e.preventDefault();
+        showLuaToolsConfirm("GreenVapor", t("Are you sure?", "Tem certeza?"), function() {
+          Millennium.callServerMethod("greenvapor", "DeleteLuaToolsForApp", {
+            appid: String(appid), contentScriptQuery: "",
+          }).then(function() { onDeleted(); }).catch(function(){});
+        }, function(){});
+      };
+      return btn;
+    }
+
+    // ── render functions ──────────────────────────────────────────────────────
+    function renderGrid(apps) {
+      const grid = document.createElement("div");
+      grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;";
+      const namePromises = [];
+
+      apps.forEach(function(item) {
+        const appid = item.appid || item;
+        let name = item.gameName && !item.gameName.startsWith("Unknown") ? item.gameName : ("App " + appid);
+        const card = document.createElement("div");
+        card.dataset.appid = String(appid);
+        card.dataset.sortname = name;
+        card.style.cssText = `background:${colors.bgContainer};border:1px solid ${colors.border};border-radius:6px;overflow:hidden;transition:border-color 0.2s,transform 0.2s,box-shadow 0.2s;cursor:default;`;
+        card.onmouseover = function() { card.style.borderColor=colors.accent; card.style.transform="translateY(-2px)"; card.style.boxShadow=`0 4px 20px rgba(${colors.rgbString},0.2)`; };
+        card.onmouseout  = function() { card.style.borderColor=colors.border; card.style.transform=""; card.style.boxShadow=""; };
+
+        card.appendChild(buildImgElement(appid, "position:relative;width:100%;aspect-ratio:460/215;background:#111;", "width:100%;height:100%;object-fit:cover;display:block;", "28px"));
+
+        const foot = document.createElement("div");
+        foot.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;gap:6px;background:rgba(${colors.rgbString},0.06);border-top:1px solid ${colors.borderRgba};`;
+        const nameEl = document.createElement("span");
+        nameEl.textContent = name;
+        nameEl.style.cssText = `font-size:11px;color:${colors.text};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;`;
+        nameEl.title = name;
+
+        if (!item.gameName || item.gameName.startsWith("Unknown")) {
+          namePromises.push(fetchSteamGameName(appid).then(function(r) { if (r) { nameEl.textContent=r; nameEl.title=r; card.dataset.sortname=r; } }));
+        } else {
+          namePromises.push(Promise.resolve());
+        }
+
+        foot.appendChild(nameEl);
+        foot.appendChild(makeDeleteBtn(appid, function() {
+          card.remove();
+          checkEmpty();
+          updateCounter(grid);
+        }));
+        card.appendChild(foot);
+        grid.appendChild(card);
+      });
+
+      content.appendChild(grid);
+
+      Promise.all(namePromises).then(function() { applySortToContainer(grid); });
+    }
+
+    function renderList(apps) {
+      const list = document.createElement("div");
+      list.style.cssText = "display:flex;flex-direction:column;gap:6px;";
+      const namePromises = [];
+
+      apps.forEach(function(item) {
+        const appid = item.appid || item;
+        let name = item.gameName && !item.gameName.startsWith("Unknown") ? item.gameName : ("App " + appid);
+        const scriptCount = Array.isArray(item.scripts) ? item.scripts.length : (item.scriptCount || 1);
+
+        const row = document.createElement("div");
+        row.dataset.appid = String(appid);
+        row.dataset.sortname = name;
+        row.style.cssText = `display:flex;align-items:center;gap:12px;padding:8px 10px;background:rgba(${colors.rgbString},0.04);border:1px solid ${colors.border};border-radius:4px;transition:border-color 0.15s,background 0.15s;`;
+        row.onmouseover = function() { row.style.borderColor=colors.accent; row.style.background=`rgba(${colors.rgbString},0.09)`; };
+        row.onmouseout  = function() { row.style.borderColor=colors.border; row.style.background=`rgba(${colors.rgbString},0.04)`; };
+
+        row.appendChild(buildImgElement(appid, "width:72px;height:34px;border-radius:3px;overflow:hidden;flex-shrink:0;background:#111;", "width:100%;height:100%;object-fit:cover;display:block;", "14px"));
+
+        const nameEl = document.createElement("div");
+        nameEl.textContent = name;
+        nameEl.title = name;
+        nameEl.style.cssText = `flex:1;font-size:13px;font-weight:500;color:${colors.text};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+
+        if (!item.gameName || item.gameName.startsWith("Unknown")) {
+          namePromises.push(fetchSteamGameName(appid).then(function(r) { if (r) { nameEl.textContent=r; nameEl.title=r; row.dataset.sortname=r; } }));
+        } else {
+          namePromises.push(Promise.resolve());
+        }
+
+        const badge = document.createElement("div");
+        badge.textContent = scriptCount + " " + (scriptCount === 1 ? t("menu.library.script", "script") : t("menu.library.scripts", "scripts"));
+        badge.style.cssText = `font-size:10px;color:${colors.textSecondary};background:rgba(${colors.rgbString},0.08);border:1px solid ${colors.border};border-radius:10px;padding:2px 8px;white-space:nowrap;flex-shrink:0;`;
+
+        row.appendChild(nameEl);
+        row.appendChild(badge);
+        row.appendChild(makeDeleteBtn(appid, function() {
+          row.remove();
+          checkEmpty();
+          updateCounter(list);
+        }));
+        list.appendChild(row);
+      });
+
+      content.appendChild(list);
+
+      Promise.all(namePromises).then(function() { applySortToContainer(list); });
+    }
+
+    function checkEmpty() {
+      const items = content.querySelectorAll("[data-appid]");
+      if (items.length === 0) {
+        content.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.style.cssText = `text-align:center;padding:40px;color:${colors.textSecondary};font-size:13px;`;
+        empty.innerHTML = `<i class="fa-solid fa-gamepad" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.3;"></i>${t("menu.library.empty", "Nenhum jogo com scripts instalados.")}`;
+        content.appendChild(empty);
+        counterBar.textContent = " ";
+      }
+    }
+
+    function updateCounter(container) {
+      const n = container ? container.querySelectorAll("[data-appid]").length : 0;
+      if (n > 0) counterBar.textContent = n + " " + (n === 1 ? t("menu.library.game", "jogo") : t("menu.library.games", "jogos")) + " " + t("menu.library.withScripts", "com scripts instalados");
+    }
+
+    function renderView(apps) {
+      content.innerHTML = "";
+      if (apps.length === 0) { checkEmpty(); return; }
+      updateCounter({ querySelectorAll: function() { return apps; } });
+      counterBar.textContent = apps.length + " " + (apps.length === 1 ? t("menu.library.game", "jogo") : t("menu.library.games", "jogos")) + " " + t("menu.library.withScripts", "com scripts instalados");
+      if (currentView === "list") renderList(apps);
+      else renderGrid(apps);
+    }
+
+    let _loadedApps = null;
+
+    function applySortToContainer(container) {
+      const items = Array.from(container.children);
+      if (currentSort === "alpha") {
+        items.sort(function(a, b) {
+          return (a.dataset.sortname || "").localeCompare(b.dataset.sortname || "", undefined, { sensitivity: "base" });
+        });
+      } else {
+        items.sort(function(a, b) {
+          return (_originalOrder[a.dataset.appid] || 0) - (_originalOrder[b.dataset.appid] || 0);
+        });
+      }
+      items.forEach(function(el) { container.appendChild(el); });
+    }
+
+    gridBtn.onclick = function(e) {
+      e.preventDefault();
+      if (currentView === "grid") return;
+      currentView = "grid";
+      try { localStorage.setItem("gv_library_view", "grid"); } catch(_) {}
+      updateViewBtns();
+      if (_loadedApps) renderView(_loadedApps);
+    };
+    listBtn.onclick = function(e) {
+      e.preventDefault();
+      if (currentView === "list") return;
+      currentView = "list";
+      try { localStorage.setItem("gv_library_view", "list"); } catch(_) {}
+      updateViewBtns();
+      if (_loadedApps) renderView(_loadedApps);
+    };
+    sortAlphaBtn.onclick = function(e) {
+      e.preventDefault();
+      if (currentSort === "alpha") return;
+      currentSort = "alpha";
+      try { localStorage.setItem("gv_library_sort", "alpha"); } catch(_) {}
+      updateSortBtns();
+      const container = content.querySelector("[data-appid]") && content.firstChild;
+      if (container) applySortToContainer(container);
+    };
+    sortDateBtn.onclick = function(e) {
+      e.preventDefault();
+      if (currentSort === "date") return;
+      currentSort = "date";
+      try { localStorage.setItem("gv_library_sort", "date"); } catch(_) {}
+      updateSortBtns();
+      const container = content.querySelector("[data-appid]") && content.firstChild;
+      if (container) applySortToContainer(container);
+    };
 
     Millennium.callServerMethod("greenvapor", "GetInstalledLuaScripts", { contentScriptQuery: "" })
       .then(function(res) {
         try {
           const payload = typeof res === "string" ? JSON.parse(res) : res;
-          const apps = (payload && Array.isArray(payload.scripts)) ? payload.scripts : [];
-          content.innerHTML = "";
-
-          if (apps.length === 0) {
-            const empty = document.createElement("div");
-            empty.style.cssText = `text-align:center;padding:32px;color:${colors.textSecondary};font-size:13px;`;
-            empty.innerHTML = `<i class="fa-solid fa-gamepad" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.3;"></i>${t("menu.library.empty", "No games with scripts installed.")}`;
-            content.appendChild(empty);
-            return;
-          }
-
-          const grid = document.createElement("div");
-          grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;";
-
-          const namePromises = [];
-
-          apps.forEach(function(item) {
-            const appid = item.appid || item;
-            const name  = item.gameName && !item.gameName.startsWith("Unknown") ? item.gameName : ("App " + appid);
-            const card  = document.createElement("div");
-            card.style.cssText = `background:${colors.bgContainer};border:1px solid ${colors.border};border-radius:3px;overflow:hidden;transition:border-color 0.15s;cursor:default;`;
-            card.onmouseover = function() { card.style.borderColor = colors.accent; };
-            card.onmouseout  = function() { card.style.borderColor = colors.border; };
-
-            // Game image — try multiple Steam CDN formats in sequence
-            const imgWrap = document.createElement("div");
-            imgWrap.style.cssText = "position:relative;width:100%;aspect-ratio:460/215;background:#111;";
-            const img = document.createElement("img");
-            img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-            const imgUrls = [
-              "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/header.jpg",
-              "https://cdn.akamai.steamstatic.com/steam/apps/" + appid + "/header.jpg",
-              "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/capsule_616x353.jpg",
-              "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/capsule_231x87.jpg",
-            ];
-            let imgUrlIdx = 0;
-            function _showGamepadIcon() {
-              imgWrap.style.cssText += "display:flex;align-items:center;justify-content:center;";
-              img.remove();
-              const ico = document.createElement("i");
-              ico.className = "fa-solid fa-gamepad";
-              ico.style.cssText = `font-size:28px;color:${colors.textSecondary};opacity:0.4;`;
-              imgWrap.appendChild(ico);
-            }
-            img.src = imgUrls[imgUrlIdx];
-            img.onerror = function() {
-              imgUrlIdx++;
-              if (imgUrlIdx < imgUrls.length) {
-                img.src = imgUrls[imgUrlIdx];
-                return;
-              }
-              // All static CDN URLs failed — fetch hash-based URL from Steam API
-              fetchSteamHeaderImage(appid).then(function(apiUrl) {
-                if (apiUrl) {
-                  img.onerror = _showGamepadIcon;
-                  img.src = apiUrl;
-                } else {
-                  _showGamepadIcon();
-                }
-              }).catch(_showGamepadIcon);
-            };
-            imgWrap.appendChild(img);
-            card.appendChild(imgWrap);
-
-            // Name + delete
-            const footer = document.createElement("div");
-            footer.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;";
-            const nameEl = document.createElement("span");
-            nameEl.textContent = name;
-            nameEl.style.cssText = `font-size:11px;color:${colors.text};font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;`;
-            nameEl.title = name;
-
-            if (!item.gameName || item.gameName.startsWith("Unknown")) {
-              namePromises.push(fetchSteamGameName(appid).then(function(resolved) {
-                if (resolved) { nameEl.textContent = resolved; nameEl.title = resolved; }
-              }));
-            } else {
-              namePromises.push(Promise.resolve());
-            }
-
-            const delBtn = document.createElement("a");
-            delBtn.href = "#";
-            delBtn.style.cssText = "color:#e57373;font-size:13px;text-decoration:none;flex-shrink:0;";
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.title = t("Delete", "Delete");
-            delBtn.onclick = function(e) {
-              e.preventDefault();
-              showLuaToolsConfirm("GreenVapor", t("Are you sure?", "Are you sure?"), function() {
-                Millennium.callServerMethod("greenvapor", "DeleteLuaToolsForApp", {
-                  appid: String(appid),
-                  contentScriptQuery: "",
-                }).then(function() {
-                  card.remove();
-                  if (grid.children.length === 0) {
-                    content.innerHTML = "";
-                    const empty = document.createElement("div");
-                    empty.style.cssText = `text-align:center;padding:32px;color:${colors.textSecondary};font-size:13px;`;
-                    empty.innerHTML = `<i class="fa-solid fa-gamepad" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.3;"></i>${t("menu.library.empty", "No games with scripts installed.")}`;
-                    content.appendChild(empty);
-                  }
-                }).catch(function(){});
-              }, function(){});
-            };
-
-            footer.appendChild(nameEl);
-            footer.appendChild(delBtn);
-            card.appendChild(footer);
-            grid.appendChild(card);
+          _loadedApps = (payload && Array.isArray(payload.scripts)) ? payload.scripts : [];
+          _loadedApps.forEach(function(item, i) {
+            _originalOrder[String(item.appid || item)] = i;
           });
-
-          content.appendChild(grid);
-
-          // Re-sort cards alphabetically once all game names have resolved
-          Promise.all(namePromises).then(function() {
-            const cards = Array.from(grid.children);
-            cards.sort(function(a, b) {
-              const na = (a.querySelector("span") || {}).textContent || "";
-              const nb = (b.querySelector("span") || {}).textContent || "";
-              return na.localeCompare(nb, undefined, { sensitivity: "base" });
-            });
-            cards.forEach(function(c) { grid.appendChild(c); });
-          });
+          renderView(_loadedApps);
         } catch(_) {}
       })
       .catch(function() {
-        content.innerHTML = `<div style="text-align:center;padding:32px;color:#e57373;font-size:13px;">${t("menu.library.error", "Failed to load library.")}</div>`;
+        content.innerHTML = `<div style="text-align:center;padding:32px;color:#e57373;font-size:13px;">${t("menu.library.error", "Falha ao carregar biblioteca.")}</div>`;
       });
   }
 
