@@ -1774,9 +1774,7 @@
         );
         cardGrid.appendChild(checkBtn);
 
-        if (isGamePage) {
-          checkBtn.style.gridColumn = "span 2";
-        }
+        if (isGamePage) {checkBtn.style.display = "none";}
 
         container.appendChild(cardGrid);
 
@@ -1804,12 +1802,56 @@
           try { overlay.remove(); } catch(_) {}
           try { Millennium.callServerMethod("greenvapor", "OpenExternalUrl", { url: "https://discord.gg/greenvapor", contentScriptQuery: "" }); } catch(_) {}
         });
+        const updateFooterBtn = document.createElement("a");
+        updateFooterBtn.href = "#";
+        updateFooterBtn.className = "luatools-btn";
+        updateFooterBtn.style.cssText = "display:flex;align-items:center;gap:5px;padding:6px 10px;font-size:11px;";
+        updateFooterBtn.title = t("menu.checkForUpdates", "Check Updates");
+        const updateIcon = document.createElement("i");
+        updateIcon.className = "fa-solid fa-arrow-up-to-dotted-line";
+        updateIcon.style.fontSize = "11px";
+        const updateLabel = document.createElement("span");
+        updateLabel.textContent = window.__GreenVaporVersion ? "v" + window.__GreenVaporVersion : "...";
+        updateFooterBtn.appendChild(updateIcon);
+        updateFooterBtn.appendChild(updateLabel);
+        updateFooterBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          updateLabel.textContent = "...";
+          updateIcon.className = "fa-solid fa-spinner";
+          updateIcon.style.animation = "spin 1s linear infinite";
+          try {
+            Millennium.callServerMethod("greenvapor", "CheckForUpdatesNow", { contentScriptQuery: "" }).then(function(res) {
+              try {
+                const p = typeof res === "string" ? JSON.parse(res) : res;
+                const msg = p && p.message ? String(p.message) : "";
+                updateIcon.style.animation = "";
+                if (msg && msg.toLowerCase().includes("1.1.2")) {
+                  updateIcon.className = "fa-solid fa-check";
+                  updateLabel.textContent = "v" + (window.__GreenVaporVersion || "");
+                } else if (msg) {
+                  updateIcon.className = "fa-solid fa-arrow-up";
+                  updateLabel.textContent = t("menu.updateAvailable", "Atualizar");
+                  ShowLuaToolsAlert("GreenVapor", msg);
+                } else {
+                  updateIcon.className = "fa-solid fa-check";
+                  updateLabel.textContent = "v" + (window.__GreenVaporVersion || "");
+                }
+              } catch(_) {
+                updateIcon.className = "fa-solid fa-arrow-up-to-dotted-line";
+                updateIcon.style.animation = "";
+                updateLabel.textContent = window.__GreenVaporVersion ? "v" + window.__GreenVaporVersion : "?";
+              }
+            });
+          } catch(_) {}
+        });
         const millVersionEl = document.createElement("div");
         millVersionEl.style.cssText = `margin-left:auto;font-size:10px;color:${colors.textSecondary};`;
         if (window.__MillenniumVersion) millVersionEl.textContent = "Millennium " + window.__MillenniumVersion;
         menuFooter.appendChild(restartFooterBtn);
         menuFooter.appendChild(discordFooterBtn);
+        if (isGamePage) menuFooter.appendChild(updateFooterBtn);
         menuFooter.appendChild(millVersionEl);
+
 
         header.appendChild(title);
         header.appendChild(iconButtons);
