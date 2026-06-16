@@ -3638,43 +3638,59 @@
 
     const modal = document.createElement("div");
     const settingsModalColors = getThemeColors();
-    modal.style.cssText = `position:relative;background:${settingsModalColors.modalBg};color:${settingsModalColors.text};border:1px solid ${settingsModalColors.border};border-radius:4px;width:750px;max-height:88vh;padding:0;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.65), 0 0 0 1px ${settingsModalColors.shadowRgba};animation:slideUp 0.12s ease-out;overflow:hidden;`;
+    modal.style.cssText = `position:relative;background:${settingsModalColors.modalBg};color:${settingsModalColors.text};border:1px solid ${settingsModalColors.border};border-top:2px solid ${settingsModalColors.accent};border-radius:6px;width:750px;max-height:88vh;padding:0;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.65), 0 0 20px rgba(${settingsModalColors.rgbString},0.08), 0 0 0 1px ${settingsModalColors.shadowRgba};animation:slideUp 0.12s ease-out;overflow:hidden;`;
 
     const header = document.createElement("div");
     const settingsHeaderColors = getThemeColors();
-    header.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid ${settingsHeaderColors.border.replace("0.3", "0.15")};`;
+    header.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:14px 20px 13px;border-bottom:1px solid ${settingsHeaderColors.borderRgba};background:rgba(${settingsHeaderColors.rgbString},0.04);position:relative;overflow:hidden;`;
+    const settingsHeaderGradLine = document.createElement("div");
+    settingsHeaderGradLine.style.cssText = `position:absolute;bottom:0;left:0;right:0;height:1px;background:${settingsHeaderColors.gradient};opacity:0.45;pointer-events:none;`;
+    header.appendChild(settingsHeaderGradLine);
 
     const title = document.createElement("div");
     const settingsTitleColors = getThemeColors();
-    title.style.cssText = `font-size:18px;color:${settingsTitleColors.text};font-weight:600;display:flex;align-items:center;gap:10px;`;
+    title.style.cssText = `display:flex;align-items:center;gap:10px;position:relative;z-index:1;`;
     const settingsTitleImg = document.createElement("img");
     settingsTitleImg.src = "GreenVapor/greenvapor-icon.png";
-    settingsTitleImg.style.cssText = "width:22px;height:22px;";
+    settingsTitleImg.style.cssText = `width:30px;height:30px;border-radius:5px;box-shadow:0 0 10px ${settingsTitleColors.shadow};`;
     settingsTitleImg.onerror = function() { this.style.display = "none"; };
+    try {
+      Millennium.callServerMethod("greenvapor", "GetIconDataUrl", { contentScriptQuery: "" }).then(function(res) {
+        try {
+          const p = typeof res === "string" ? JSON.parse(res) : res;
+          settingsTitleImg.src = (p && p.success && p.dataUrl) ? p.dataUrl : "GreenVapor/greenvapor-icon.png";
+        } catch(_) { settingsTitleImg.src = "GreenVapor/greenvapor-icon.png"; }
+      });
+    } catch(_) { settingsTitleImg.src = "GreenVapor/greenvapor-icon.png"; }
+    const settingsTitleStack = document.createElement("div");
+    const settingsTitleMain = document.createElement("div");
+    settingsTitleMain.style.cssText = `font-size:14px;font-weight:700;color:${settingsTitleColors.text};line-height:1.2;`;
+    settingsTitleMain.textContent = "GreenVapor";
+    const settingsTitleSub = document.createElement("div");
+    settingsTitleSub.style.cssText = `font-size:11px;color:${settingsTitleColors.textSecondary};margin-top:2px;`;
+    settingsTitleSub.textContent = t("settings.title", "Configurações");
+    settingsTitleStack.appendChild(settingsTitleMain);
+    settingsTitleStack.appendChild(settingsTitleSub);
     title.appendChild(settingsTitleImg);
-    title.appendChild(document.createTextNode(t("settings.title", "GreenVapor · Settings")));
+    title.appendChild(settingsTitleStack);
 
     const iconButtons = document.createElement("div");
-    iconButtons.style.cssText = "display:flex;gap:12px;";
+    iconButtons.style.cssText = "display:flex;gap:8px;position:relative;z-index:1;";
 
     const discordIconBtn = document.createElement("a");
     discordIconBtn.href = "#";
     const discordBtnColors = getThemeColors();
-    discordIconBtn.style.cssText = `display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(${discordBtnColors.rgbString},0.08);border:1px solid ${discordBtnColors.border};border-radius:3px;color:${discordBtnColors.accent};font-size:16px;text-decoration:none;transition:all 0.2s ease;cursor:pointer;`;
+    discordIconBtn.style.cssText = `display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(${discordBtnColors.rgbString},0.07);border:1px solid ${discordBtnColors.border};border-radius:4px;color:${discordBtnColors.accent};font-size:14px;text-decoration:none;transition:all 0.15s;cursor:pointer;`;
     discordIconBtn.innerHTML = '<i class="fa-brands fa-discord"></i>';
     discordIconBtn.title = t("menu.discord", "Discord");
     discordIconBtn.onmouseover = function () {
       const c = getThemeColors();
       this.style.background = `rgba(${c.rgbString},0.18)`;
-      
-      
-      this.style.borderColor = c.accent;
+      this.style.borderColor = c.borderHover;
     };
     discordIconBtn.onmouseout = function () {
       const c = getThemeColors();
-      this.style.background = `rgba(${c.rgbString},0.08)`;
-      
-      
+      this.style.background = `rgba(${c.rgbString},0.07)`;
       this.style.borderColor = c.border;
     };
     iconButtons.appendChild(discordIconBtn);
@@ -3682,21 +3698,17 @@
     const closeIconBtn = document.createElement("a");
     closeIconBtn.href = "#";
     const closeBtnColors = getThemeColors();
-    closeIconBtn.style.cssText = `display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(${closeBtnColors.rgbString},0.08);border:1px solid ${closeBtnColors.border};border-radius:3px;color:${closeBtnColors.accent};font-size:16px;text-decoration:none;transition:all 0.2s ease;cursor:pointer;`;
+    closeIconBtn.style.cssText = `display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(${closeBtnColors.rgbString},0.07);border:1px solid ${closeBtnColors.border};border-radius:4px;color:${closeBtnColors.textSecondary};font-size:14px;text-decoration:none;transition:all 0.15s;cursor:pointer;`;
     closeIconBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     closeIconBtn.title = t("settings.close", "Close");
     closeIconBtn.onmouseover = function () {
       const c = getThemeColors();
-      this.style.background = `rgba(${c.rgbString},0.18)`;
-      
-      
-      this.style.borderColor = c.accent;
+      this.style.background = `rgba(${c.rgbString},0.2)`;
+      this.style.borderColor = c.borderHover;
     };
     closeIconBtn.onmouseout = function () {
       const c = getThemeColors();
-      this.style.background = `rgba(${c.rgbString},0.08)`;
-      
-      
+      this.style.background = `rgba(${c.rgbString},0.07)`;
       this.style.borderColor = c.border;
     };
     iconButtons.appendChild(closeIconBtn);
@@ -3769,8 +3781,11 @@
     }
 
     const btnRow = document.createElement("div");
-    btnRow.style.cssText =
-      "padding:16px 24px 20px;display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.06);";
+    const btnRowColors = getThemeColors();
+    btnRow.style.cssText = `padding:14px 20px 16px;display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid ${btnRowColors.borderRgba};background:rgba(${btnRowColors.rgbString},0.03);position:relative;`;
+    const btnRowGradLine = document.createElement("div");
+    btnRowGradLine.style.cssText = `position:absolute;top:0;left:0;right:0;height:1px;background:${btnRowColors.gradient};opacity:0.25;pointer-events:none;`;
+    btnRow.appendChild(btnRowGradLine);
 
     const backBtn = createSettingsButton(
       "back",
@@ -4132,18 +4147,26 @@
 
         const groupEl = document.createElement("div");
         const groupCardColors = getThemeColors();
-        groupEl.style.cssText = `background:rgba(${groupCardColors.rgbString},0.04);border:1px solid ${groupCardColors.border};border-radius:3px;padding:18px 20px;margin-bottom:16px;`;
+        groupEl.style.cssText = `background:rgba(${groupCardColors.rgbString},0.04);border:1px solid ${groupCardColors.border};border-left:2px solid ${groupCardColors.accent};border-radius:4px;padding:18px 20px;margin-bottom:14px;`;
         groupEl.dataset.settingGroup = group.key;
 
         const groupTitle = document.createElement("div");
         const titleText = t("settings." + group.key, group.label || group.key);
         if (group.key === "general") {
           const generalTitleColors = getThemeColors();
-          groupTitle.innerHTML = `<i class="fa-solid fa-gear" style="margin-right:10px;color:${generalTitleColors.textSecondary};font-size:20px;"></i>${titleText}`;
-          groupTitle.style.cssText = `font-size:19px;color:${generalTitleColors.text};margin-bottom:14px;font-weight:600;display:flex;align-items:center;`;
+          groupTitle.style.cssText = `font-size:14px;color:${generalTitleColors.text};margin-bottom:14px;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:0.02em;`;
+          const gIcon = document.createElement("i");
+          gIcon.className = "fa-solid fa-gear";
+          gIcon.style.cssText = `font-size:15px;background:${generalTitleColors.gradient};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
+          const gText = document.createElement("span");
+          gText.style.cssText = `background:${generalTitleColors.gradient};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
+          gText.textContent = titleText;
+          groupTitle.appendChild(gIcon);
+          groupTitle.appendChild(gText);
         } else {
           const otherTitleColors = getThemeColors();
-          groupTitle.style.cssText = `font-size:15px;font-weight:600;color:${otherTitleColors.accent};margin-bottom:6px;`;
+          groupTitle.style.cssText = `font-size:13px;font-weight:700;margin-bottom:6px;letter-spacing:0.04em;text-transform:uppercase;background:${otherTitleColors.gradient};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
+          groupTitle.textContent = titleText;
         }
         groupEl.appendChild(groupTitle);
 
@@ -6508,29 +6531,26 @@
       headerBtn.title = "GreenVapor Settings";
       headerBtn.setAttribute("data-tooltip-text", "GreenVapor Settings");
 
-      const img = document.createElement("img");
-      img.style.height = "18px";
-      img.style.width = "18px";
-      img.style.verticalAlign = "middle";
+      const _gearSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="GreenVapor"><path fill="currentColor" d="M12 8a4 4 0 100 8 4 4 0 000-8zm9.94 3.06l-2.12-.35a7.962 7.962 0 00-1.02-2.46l1.29-1.72a.75.75 0 00-.09-.97l-1.41-1.41a.75.75 0 00-.97-.09l-1.72 1.29c-.77-.44-1.6-.78-2.46-1.02L13.06 2.06A.75.75 0 0012.31 2h-1.62a.75.75 0 00-.75.65l-.35 2.12a7.962 7.962 0 00-2.46 1.02L5 4.6a.75.75 0 00-.97.09L2.62 6.1a.75.75 0 00-.09.97l1.29 1.72c-.44.77-.78 1.6-1.02 2.46l-2.12.35a.75.75 0 00-.65.75v1.62c0 .37.27.69.63.75l2.14.36c.24.86.58 1.69 1.02 2.46L2.53 18a.75.75 0 00.09.97l1.41 1.41c.26.26.67.29.97.09l1.72-1.29c.77.44 1.6.78 2.46 1.02l.35 2.12c.06.36.38.63.75.63h1.62c.37 0 .69-.27.75-.63l.36-2.14c.86-.24 1.69-.58 2.46-1.02l1.72 1.29c.3.2.71.17.97-.09l1.41-1.41c.26-.26.29-.67.09-.97l-1.29-1.72c.44-.77.78-1.6 1.02-2.46l2.12-.35c.36-.06.63-.38.63-.75v-1.62a.75.75 0 00-.65-.75z"/></svg>';
 
-      img.onerror = function () {
-        // cogwheel fallback
-        headerBtn.innerHTML =
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="GreenVapor"><path fill="currentColor" d="M12 8a4 4 0 100 8 4 4 0 000-8zm9.94 3.06l-2.12-.35a7.962 7.962 0 00-1.02-2.46l1.29-1.72a.75.75 0 00-.09-.97l-1.41-1.41a.75.75 0 00-.97-.09l-1.72 1.29c-.77-.44-1.6-.78-2.46-1.02L13.06 2.06A.75.75 0 0012.31 2h-1.62a.75.75 0 00-.75.65l-.35 2.12a7.962 7.962 0 00-2.46 1.02L5 4.6a.75.75 0 00-.97.09L2.62 6.1a.75.75 0 00-.09.97l1.29 1.72c-.44.77-.78 1.6-1.02 2.46l-2.12.35a.75.75 0 00-.65.75v1.62c0 .37.27.69.63.75l2.14.36c.24.86.58 1.69 1.02 2.46L2.53 18a.75.75 0 00.09.97l1.41 1.41c.26.26.67.29.97.09l1.72-1.29c.77.44 1.6.78 2.46 1.02l.35 2.12c.06.36.38.63.75.63h1.62c.37 0 .69-.27.75-.63l.36-2.14c.86-.24 1.69-.58 2.46-1.02l1.72 1.29c.3.2.71.17.97-.09l1.41-1.41c.26-.26.29-.67.09-.97l-1.29-1.72c.44-.77.78-1.6 1.02-2.46l2.12-.35c.36-.06.63-.38.63-.75v-1.62a.75.75 0 00-.65-.75z"/></svg>';
-      };
+      // Start with gear as placeholder; replace with real icon when IPC resolves
+      headerBtn.innerHTML = _gearSvg;
 
-      img.src = "GreenVapor/greenvapor-icon.png";
-
-      Millennium.callServerMethod("greenvapor", "GetIconDataUrl", {})
+      Millennium.callServerMethod("greenvapor", "GetIconDataUrl", { contentScriptQuery: "" })
         .then(function (res) {
-          const payload = typeof res === "string" ? JSON.parse(res) : res;
-          if (payload && payload.success && payload.dataUrl) {
-            img.src = payload.dataUrl;
-          }
+          try {
+            const payload = typeof res === "string" ? JSON.parse(res) : res;
+            if (payload && payload.success && payload.dataUrl && payload.dataUrl.length > 50) {
+              const img = document.createElement("img");
+              img.style.cssText = "height:18px;width:18px;vertical-align:middle;";
+              img.src = payload.dataUrl;
+              img.onerror = function() { headerBtn.innerHTML = _gearSvg; };
+              headerBtn.innerHTML = "";
+              headerBtn.appendChild(img);
+            }
+          } catch(_) {}
         })
         .catch(function () {});
-
-      headerBtn.appendChild(img);
 
       headerBtn.onclick = function (e) {
         e.preventDefault();
@@ -6730,6 +6750,9 @@
                   }
                   window.__LuaToolsButtonInserted = true;
                   backendLog("GreenVapor button inserted");
+                  ensureTranslationsLoaded(false).then(function () {
+                    updateButtonTranslations();
+                  });
                 }
                 window.__LuaToolsPresenceCheckInFlight = false;
               } catch (_) {
@@ -6740,6 +6763,9 @@
                   steamdbContainer.appendChild(luatoolsButton);
                   window.__LuaToolsButtonInserted = true;
                   backendLog("GreenVapor button inserted");
+                  ensureTranslationsLoaded(false).then(function () {
+                    updateButtonTranslations();
+                  });
                 }
                 window.__LuaToolsPresenceCheckInFlight = false;
               }
@@ -6762,6 +6788,9 @@
               }
               window.__LuaToolsButtonInserted = true;
               backendLog("GreenVapor button inserted");
+              ensureTranslationsLoaded(false).then(function () {
+                updateButtonTranslations();
+              });
             }
           }
         } catch (_) {
@@ -6781,6 +6810,9 @@
             }
             window.__LuaToolsButtonInserted = true;
             backendLog("GreenVapor button inserted");
+            ensureTranslationsLoaded(false).then(function () {
+              updateButtonTranslations();
+            });
           }
         }
       }
@@ -6802,50 +6834,55 @@
             // Always enter the fetch path — badges are independent of the GreenVapor button.
             // The inner cacheKey guard prevents redundant DOM updates.
             fetchGamesDatabase().then(function (db) {
-                let pillsContainer = steamdbContainer.querySelector(
-                  ".luatools-pills-container",
-                );
+                const oldPills = steamdbContainer.querySelector(".luatools-pills-container");
+                if (oldPills) oldPills.remove();
 
-                if (!pillsContainer) {
-                  pillsContainer = document.createElement("div");
-                  pillsContainer.className = "luatools-pills-container";
-                  // Try to insert after GreenVapor button, fallback to appending to container
-                  const gvBtn = steamdbContainer.querySelector(".luatools-button");
-                  if (gvBtn) {
-                    gvBtn.after(pillsContainer);
-                  } else {
-                    steamdbContainer.appendChild(pillsContainer);
-                  }
+                // Find breadcrumb bar — target for right-aligned badges
+                function findBreadcrumb() {
+                  return document.querySelector(".breadcrumbs .blockbg") ||
+                         document.querySelector(".breadcrumbs") ||
+                         document.querySelector("#breadcrumbs_wrapper") ||
+                         document.querySelector("[class*='breadcrumb']");
                 }
-                pillsContainer.dataset.appid = String(appid);
+                const bc = findBreadcrumb();
+                if (!bc) return;
+
+                // Make breadcrumb flex so we can push badges to the right
+                if (!bc.dataset.gvFlex) {
+                  bc.style.display = "flex";
+                  bc.style.alignItems = "center";
+                  bc.style.flexWrap = "nowrap";
+                  bc.dataset.gvFlex = "1";
+                }
+
+                let badgesEl = bc.querySelector(".luatools-bc-badges");
+                if (!badgesEl) {
+                  badgesEl = document.createElement("div");
+                  badgesEl.className = "luatools-bc-badges";
+                  badgesEl.style.cssText = "display:flex;gap:4px;align-items:center;margin-left:auto;padding-left:12px;flex-shrink:0;";
+                  bc.appendChild(badgesEl);
+                }
+
+                if (badgesEl.dataset.appid === String(appid) && badgesEl.dataset.content) return;
+                badgesEl.dataset.appid = String(appid);
 
                 const key = String(appid);
                 const gameData = db && db.apps && db.apps[key] ? db.apps[key] : null;
 
-                // check denuvo
                 const drmNotice = document.querySelector(".DRM_notice");
-                const hasDenuvo =
-                  drmNotice && drmNotice.textContent.includes("Denuvo");
+                const hasDenuvo = drmNotice && drmNotice.textContent.includes("Denuvo");
 
                 fetchFixes(appid).then(function (fixesData) {
                   const hasFixes =
                     fixesData &&
-                    ((fixesData.genericFix &&
-                      fixesData.genericFix.status === 200) ||
-                      (fixesData.onlineFix &&
-                        fixesData.onlineFix.status === 200));
+                    ((fixesData.genericFix && fixesData.genericFix.status === 200) ||
+                     (fixesData.onlineFix  && fixesData.onlineFix.status === 200));
                   const showDenuvoPill = hasDenuvo && !hasFixes;
 
-                  const cacheKey = JSON.stringify({
-                    d: gameData || "untested",
-                    showDenuvo: showDenuvoPill,
-                    hasFixes: hasFixes,
-                  });
-
-                  if (pillsContainer.dataset.content === cacheKey) return;
-                  pillsContainer.dataset.content = cacheKey;
-
-                  pillsContainer.innerHTML = "";
+                  const cacheKey = JSON.stringify({ d: gameData || "untested", showDenuvo: showDenuvoPill, hasFixes: hasFixes });
+                  if (badgesEl.dataset.content === cacheKey) return;
+                  badgesEl.dataset.content = cacheKey;
+                  badgesEl.innerHTML = "";
 
                   let status = "untested";
                   if (gameData && typeof gameData.playable !== "undefined") {
@@ -6853,51 +6890,32 @@
                     else if (gameData.playable === 0) status = "unplayable";
                     else if (gameData.playable === 2) status = "needs_fixes";
                   }
-
-                  if (status === "untested" && hasFixes) {
-                    status = "needs_fixes";
-                  }
+                  if (status === "untested" && hasFixes) status = "needs_fixes";
 
                   if (status !== "untested") {
                     const pill = document.createElement("span");
                     pill.className = "luatools-pill";
-                    if (status === "playable") {
-                      pill.classList.add("green");
-                      pill.textContent = t("gameStatus.playable", "Playable");
-                    } else if (status === "unplayable") {
-                      pill.classList.add("red");
-                      pill.textContent = t(
-                        "gameStatus.unplayable",
-                        "Unplayable",
-                      );
-                    } else if (status === "needs_fixes") {
-                      pill.classList.add("yellow");
-                      pill.textContent = t(
-                        "gameStatus.needsFixes",
-                        "Needs fixes",
-                      );
-                    }
-                    pillsContainer.appendChild(pill);
-                  }
-
-                  // reset button state
-                  const btn =
-                    steamdbContainer.querySelector(".luatools-button");
-                  if (btn) {
-                    btn.style.opacity = "";
-                    btn.style.pointerEvents = "";
-                    btn.style.cursor = "";
-                    const span = btn.querySelector("span");
-                    if (span && span.textContent === "Unplayable") {
-                      span.textContent = lt("Add via GreenVapor");
-                    }
+                    if (status === "playable") { pill.classList.add("green"); pill.textContent = t("gameStatus.playable", "Playable"); }
+                    else if (status === "unplayable") { pill.classList.add("red"); pill.textContent = t("gameStatus.unplayable", "Unplayable"); }
+                    else if (status === "needs_fixes") { pill.classList.add("yellow"); pill.textContent = t("gameStatus.needsFixes", "Fix disponível"); }
+                    badgesEl.appendChild(pill);
                   }
 
                   if (showDenuvoPill) {
                     const pill = document.createElement("span");
                     pill.className = "luatools-pill orange";
                     pill.textContent = t("gameStatus.denuvo", "Denuvo");
-                    pillsContainer.appendChild(pill);
+                    badgesEl.appendChild(pill);
+                  }
+
+                  // reset steamdb button state
+                  const btn = steamdbContainer.querySelector(".luatools-button");
+                  if (btn) {
+                    btn.style.opacity = "";
+                    btn.style.pointerEvents = "";
+                    btn.style.cursor = "";
+                    const span = btn.querySelector("span");
+                    if (span && span.textContent === "Unplayable") span.textContent = lt("Add via GreenVapor");
                   }
                 });
               });
@@ -8575,39 +8593,3 @@
   // Note: The gamepad back handler is configured in the gamepad system at the top of this file
   // It already handles all overlay types automatically using OVERLAY_SELECTOR_STRING
 })();
-
-// ============================================
-// SISTEMA DE AUTO-UPDATE (BACKEND INTEGRATION)
-// ============================================
-
-function ExecutarVerificacaoDeUpdate(mostrarAlertSeAtualizado = false) {
-    console.log("[GreenVapor-Updater] Iniciando checagem de rotina...");
-    
-    // Chama a função exportada pelo seu auto_update.lua
-    Millennium.callServerMethod("auto_update", "check_for_updates_now")
-        .then(response => {
-            if (response && response.success) {
-                console.log("[GreenVapor-Updater]:", response.message);
-                
-                // Se a mensagem contiver o aviso de que foi atualizado
-                if (response.message.includes("updated to")) {
-                    alert("GreenVapor: " + response.message);
-                } else if (mostrarAlertSeAtualizado) {
-                    alert("O GreenVapor já está na versão mais recente!");
-                }
-            } else if (response && response.error) {
-                console.error("[GreenVapor-Updater] Erro reportado pelo backend:", response.error);
-                if (mostrarAlertSeAtualizado) {
-                    alert("Erro ao verificar atualizações: " + response.error);
-                }
-            }
-        })
-        .catch(err => {
-            console.error("[GreenVapor-Updater] Falha crítica na chamada de rede:", err);
-        });
-}
-
-// Inicialização automática: Verifica assim que a Steam/Plugin abrir
-setTimeout(() => {
-    ExecutarVerificacaoDeUpdate(false);
-}, 5000); // Aguarda 5 segundos para não travar o carregamento inicial da Steam
