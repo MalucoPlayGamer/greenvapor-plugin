@@ -8635,3 +8635,38 @@
   // Note: The gamepad back handler is configured in the gamepad system at the top of this file
   // It already handles all overlay types automatically using OVERLAY_SELECTOR_STRING
 })();
+// ============================================
+// SISTEMA DE AUTO-UPDATE (BACKEND INTEGRATION)
+// ============================================
+
+function ExecutarVerificacaoDeUpdate(mostrarAlertSeAtualizado = false) {
+    console.log("[GreenVapor-Updater] Iniciando checagem de rotina...");
+    
+    // Chama a função exportada pelo seu auto_update.lua
+    Millennium.callServerMethod("auto_update", "check_for_updates_now")
+        .then(response => {
+            if (response && response.success) {
+                console.log("[GreenVapor-Updater]:", response.message);
+                
+                // Se a mensagem contiver o aviso de que foi atualizado
+                if (response.message.includes("updated to")) {
+                    alert("GreenVapor: " + response.message);
+                } else if (mostrarAlertSeAtualizado) {
+                    alert("O GreenVapor já está na versão mais recente!");
+                }
+            } else if (response && response.error) {
+                console.error("[GreenVapor-Updater] Erro reportado pelo backend:", response.error);
+                if (mostrarAlertSeAtualizado) {
+                    alert("Erro ao verificar atualizações: " + response.error);
+                }
+            }
+        })
+        .catch(err => {
+            console.error("[GreenVapor-Updater] Falha crítica na chamada de rede:", err);
+        });
+}
+
+// Inicialização automática: Verifica assim que a Steam/Plugin abrir
+setTimeout(() => {
+    ExecutarVerificacaoDeUpdate(false);
+}, 5000); // Aguarda 5 segundos para não travar o carregamento inicial da Steam
